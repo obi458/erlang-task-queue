@@ -18,11 +18,11 @@
     ]).
 
 -record(state, {
-        queue = queue:new() :: queue(),
+        queue = queue:new() :: queue:queue(),
         waiting_workers = [] :: [pid()],
-        monitors = dict:new() :: dict(),
+        monitors = dict:new() :: dict:dict(),
         unique_tasks = false :: boolean(),
-        queue_items = sets:new() :: set(),
+        queue_items = sets:new() :: sets:set(),
         queue_length = 0 :: non_neg_integer() % queue:len() is O(N)
     }).
 
