@@ -25,7 +25,7 @@ start_link(Options) ->
 init(Options) ->
     MaxR = proplists:get_value(workers_max_r, Options, 0),
     MaxT = proplists:get_value(workers_max_t, Options, 1),
-    WorkersNum = proplists:get_value(workers_num, Options, 10),
+    WorkersNum = proplists:get_value(workers_num, Options, erlang:system_info(schedulers)),
     WorkersSpec = [
             ?CHILD(worker_id(N), task_queue_worker, worker, [Options])
             || N <- lists:seq(1, WorkersNum)
