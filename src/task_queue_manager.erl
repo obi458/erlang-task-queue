@@ -123,7 +123,7 @@ dequeue_task(#state{ queue = Queue, queue_items = QueueItems, queue_length = Que
     NewState = State#state{
             queue = NewQueue,
             queue_items = sets:del_element(Task, QueueItems),
-            queue_length = QueueLength - 1 
+            queue_length = QueueLength - 1
         },
     { Task, NewState }.
 

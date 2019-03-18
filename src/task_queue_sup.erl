@@ -4,7 +4,7 @@
 
 %% API
 -export([
-        start_link/0,
+        start_link/1,
         child_spec/4
     ]).
 
@@ -15,11 +15,11 @@
 %%% API functions
 %%%===================================================================
 
-start_link() ->
-    supervisor:start_link(?MODULE, []).
+start_link(Name) ->
+    supervisor:start_link({local, Name}, ?MODULE, []).
 
 child_spec(Id, Mod, Type, Args) ->
-    {Id, {Mod, start_link, Args}, permanent, 500, Type, [Mod]}.
+    {Id, {Mod, start_link, Args}, transient, 500, Type, [Mod]}.
 
 %%%===================================================================
 %%% Supervisor callbacks
