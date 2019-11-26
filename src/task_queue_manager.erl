@@ -40,16 +40,16 @@ start_link(Options) ->
 init(Options) ->
     {ok, #state{
             unique_tasks = proplists:get_value(unique_tasks, Options, false)
-        }}.
+        }, 0}.
 
 handle_call(len, _From, #state{ queue_length = QueueLength } = State) ->
-    {reply, QueueLength, State};
+    {reply, QueueLength, State, 0};
 
 handle_call(unique_tasks, _From, #state{ unique_tasks = UniqueTasks } = State) ->
-    {reply, UniqueTasks, State};
+    {reply, UniqueTasks, State, 0};
 
 handle_call(_Request, _From, State) ->
-    {reply, ok, State}.
+    {reply, ok, State, 0}.
 
 handle_cast({Method, Task}, State)
         when Method =:= in;
@@ -63,24 +63,26 @@ handle_cast({Method, Task}, State)
             false ->
                 enqueue_task(Method, Task, State)
         end,
-    {noreply, NewState};
+    {noreply, NewState, 0};
 
 handle_cast(_Msg, State) ->
-    {noreply, State}.
+    {noreply, State, 0}.
 
 handle_info({get_task, WorkerPid}, #state{ queue_length = 0 } = State) ->
-    {noreply, add_waiting_worker(WorkerPid, State)};
+    {noreply, add_waiting_worker(WorkerPid, State), 0};
 
 handle_info({get_task, WorkerPid}, State) ->
     {Task, NewState} = dequeue_task(State),
     WorkerPid ! { task, Task },
-    {noreply, NewState};
+    {noreply, NewState, 0};
 
 handle_info({'DOWN', _MonitorRef, _Type, Pid, _Info}, #state{} = State) ->
-    {noreply, del_died_waiting_worker(Pid, State)};
+    {noreply, del_died_waiting_worker(Pid, State), 0};
 
+handle_info(timeout, State) ->
+  {noreply, State, hibernate};
 handle_info(_Info, State) ->
-    {noreply, State}.
+    {noreply, State, 0}.
 
 terminate(_Reason, _State) ->
     ok.
@@ -123,7 +125,7 @@ dequeue_task(#state{ queue = Queue, queue_items = QueueItems, queue_length = Que
     NewState = State#state{
             queue = NewQueue,
             queue_items = sets:del_element(Task, QueueItems),
-            queue_length = QueueLength - 1 
+            queue_length = QueueLength - 1
         },
     { Task, NewState }.
 

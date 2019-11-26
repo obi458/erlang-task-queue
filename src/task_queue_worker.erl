@@ -39,10 +39,10 @@ init(Options) ->
     {ok, not_inited}.
 
 handle_call(_Request, _From, State) ->
-    {reply, ok, State}.
+    {reply, ok, State, 0}.
 
 handle_cast(_Msg, State) ->
-    {noreply, State}.
+    {noreply, State, 0}.
 
 handle_info({ init, Options }, not_inited) ->
     WorkerModule = proplists:get_value(worker_module, Options),
@@ -55,7 +55,7 @@ handle_info({ init, Options }, not_inited) ->
             worker_module = WorkerModule,
             worker_state = WorkerState,
             task_manager = TaskManager
-        }};
+        },0};
 
 handle_info({task, Task},
         #state{
@@ -64,10 +64,12 @@ handle_info({task, Task},
             task_manager = TaskManager } = State) ->
     {ok, NewWorkerState} = erlang:apply(WorkerModule, process_task, [Task, WorkerState]),
     TaskManager ! { get_task, self() },
-    {noreply, State#state{ worker_state = NewWorkerState }};
+    {noreply, State#state{ worker_state = NewWorkerState },0};
 
+handle_info(timeout, State) ->
+  {noreply, State, hibernate};
 handle_info(_Info, State) ->
-    {noreply, State}.
+    {noreply, State, 0}.
 
 terminate(Reason, #state{ worker_module = WorkerModule, worker_state = WorkerState }) ->
     erlang:apply(WorkerModule, terminate, [Reason, WorkerState]),

@@ -36,12 +36,13 @@ start_link(Module, Args) ->
 
 start_link(Module, Args, Options) 
         when is_atom(Module), is_list(Options) ->
-    {ok, TaskQueueSup} = task_queue_sup:start_link(),
+    RegName = regname(Module,Options),
+    {ok, TaskQueueSup} = task_queue_sup:start_link(task_queue_sup_name(RegName)),
     {ok, TaskManager} =
         supervisor:start_child(
             TaskQueueSup,
             task_queue_sup:child_spec(
-                <<"task_queue_manager">>, task_queue_manager, worker, [ Options ])),
+                manager_name(RegName), task_queue_manager, worker, [ Options ])),
 
     NewOptions = [
             {task_manager, TaskManager},
@@ -53,14 +54,16 @@ start_link(Module, Args, Options)
         supervisor:start_child(
             TaskQueueSup,
             task_queue_sup:child_spec(
-                <<"task_queue_workers_sup">>, task_queue_workers_sup, supervisor, [ NewOptions ])),
+                workers_sup_name(RegName), task_queue_workers_sup, supervisor, [ NewOptions ])),
 
     case proplists:get_value(unlink, Options, false) of
         true -> erlang:unlink(TaskQueueSup);
         false -> ok
     end,
 
-    {ok, TaskManager}.
+    erlang:register(regname(Module,Options),TaskManager),
+    {ok, TaskQueueSup}.
+    %{ok, TaskManager}.
 
 stop(TaskQueue) ->
     true = erlang:exit(TaskQueue, shutdown).
@@ -79,4 +82,21 @@ len(TaskQueue) ->
 
 is_empty(TaskQueue) ->
     len(TaskQueue) =:= 0.
+
+manager_name(N) ->
+  list_to_atom("task_manager_" ++ atom_to_list(N)).
+
+workers_sup_name(N) ->
+  list_to_atom("task_workers_sup_" ++ atom_to_list(N)).
+
+task_queue_sup_name(N) ->
+  list_to_atom("task_queue_sup_" ++ atom_to_list(N)).
+
+regname(Mod,Options) ->
+  case proplists:get_value(register,Options) of
+    undefined -> Mod;
+    Name -> Name
+  end.
+
+
 
